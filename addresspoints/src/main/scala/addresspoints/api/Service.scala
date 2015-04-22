@@ -7,6 +7,7 @@ import addresspoints.model.{ AddressInput, Status }
 import addresspoints.protocol.JsonProtocol
 import akka.actor.ActorSystem
 import akka.event.LoggingAdapter
+import akka.http.coding.{ Deflate, Gzip, NoCoding }
 import akka.http.marshalling.ToResponseMarshallable
 import akka.http.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.model.StatusCodes._
@@ -40,7 +41,7 @@ trait Service extends JsonProtocol with Geocode {
   val routes = {
     path("status") {
       get {
-        compressResponseIfRequested() {
+        encodeResponseWith(NoCoding, Gzip, Deflate) {
           complete {
             // Creates ISO-8601 date string in UTC down to millisecond precision
             val now = Instant.now.toString
@@ -55,7 +56,7 @@ trait Service extends JsonProtocol with Geocode {
       pathPrefix("addresses") {
         pathPrefix("points") {
           post {
-            compressResponseIfRequested() {
+            encodeResponseWith(NoCoding, Gzip, Deflate) {
               entity(as[String]) { json =>
                 try {
                   val addressInput = json.parseJson.convertTo[AddressInput]
@@ -71,7 +72,7 @@ trait Service extends JsonProtocol with Geocode {
               path(Segment) { address =>
                 parameters('suggest.as[Int] ? 1) { suggest =>
                   get {
-                    compressResponseIfRequested() {
+                    encodeResponseWith(NoCoding, Gzip, Deflate) {
                       geocodePoints(address, suggest)
                     }
                   }
