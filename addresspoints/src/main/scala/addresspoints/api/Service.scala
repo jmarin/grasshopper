@@ -1,8 +1,8 @@
 package addresspoints.api
 
 import java.net.InetAddress
+import java.nio.file.Files
 import java.time.Instant
-
 import addresspoints.actor.FileUploadActor
 import addresspoints.model.{ AddressInput, Status }
 import addresspoints.protocol.JsonProtocol
@@ -16,6 +16,7 @@ import akka.http.model.StatusCodes._
 import akka.http.server.Directives._
 import akka.http.server.StandardRoute
 import akka.stream.ActorFlowMaterializer
+import akka.stream.scaladsl.{ Sink, Flow, Source }
 import akka.util.Timeout
 import com.typesafe.config.Config
 import grasshopper.elasticsearch.Geocode
@@ -28,6 +29,8 @@ import org.slf4j.LoggerFactory
 import io.geojson.FeatureJsonProtocol._
 import scala.concurrent.duration._
 import akka.pattern.ask
+import scala.collection.JavaConversions._
+import feature._
 
 trait Service extends JsonProtocol with Geocode {
   implicit val system: ActorSystem
@@ -74,7 +77,30 @@ trait Service extends JsonProtocol with Geocode {
               entity(as[FormData]) { formData =>
                 onSuccess(fileUploadActor ? FileUpload(formData)) {
                   case fileUploaded: FileUploaded =>
-                    complete("file uploaded")
+                    val it = Files.lines(fileUploaded.path).iterator()
+                    val source = Source(() => it)
+
+                    val flow = Flow[String]
+                      .map(a => geocode(client, "address", "point", a, 1))
+                      .map[Feature] {
+                        case Success(f) =>
+                          if (f.size > 0) f(0) else emptyFeature("error")
+                        case Failure(_) =>
+                          log.error("Failure to geocode address")
+                          emptyFeature("error")
+                      }
+
+                    encodeResponseWith(NoCoding, Gzip, Deflate) {
+                      complete {
+                        source
+                          .via(flow)
+                          .grouped(100000)
+                          .runWith(Sink.head)
+                          .map(e => ToResponseMarshallable(e))
+                      }
+                    }
+                  case _ =>
+                    complete(BadRequest)
 
                 }
               }

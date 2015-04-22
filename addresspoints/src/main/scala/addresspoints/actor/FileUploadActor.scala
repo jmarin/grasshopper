@@ -36,11 +36,11 @@ class FileUploadActor extends Actor with ActorLogging {
         bodyPart.entity.dataBytes.runForeach { byteString =>
           Source(List(byteString)).runForeach { e =>
             Files.write(tempFile, e.toArray, StandardOpenOption.APPEND)
-            log.debug(s"File uploaded: ${tempFile.toAbsolutePath}")
           }
           client ! FileUploaded(tempFile.toAbsolutePath)
         }
       }
+      log.debug(s"File uploaded: ${tempFile.toAbsolutePath}")
   }
 
   private def randomFileName() = {

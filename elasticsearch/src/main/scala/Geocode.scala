@@ -1,6 +1,7 @@
 package grasshopper.elasticsearch
 
 import feature._
+import geometry.Point
 import io.geojson.FeatureJsonProtocol._
 import org.elasticsearch.action.search.SearchType
 import org.elasticsearch.client.Client
@@ -23,6 +24,16 @@ trait Geocode {
         .take(count)
         .map(s => s.parseJson.convertTo[Feature])
     }
+  }
+
+  def emptyFeature(address: String): Feature = {
+    val schema = Schema(
+      Field("address", StringType()),
+      Field("search_address", StringType())
+    )
+    val geometry = Point(0, 0)
+    val values = Map("geometry" -> geometry, "address" -> "Address Not Found", "search_address" -> address)
+    Feature(schema, values)
   }
 
   private def searchAddress(client: Client, index: String, indexType: String, address: String): Array[SearchHit] = {
