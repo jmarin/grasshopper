@@ -1,5 +1,6 @@
 package grasshopper.addresspoints
 
+import addresspoints.actor.FileUploadActor
 import addresspoints.api.Service
 import akka.actor.ActorSystem
 import akka.event.Logging
@@ -22,6 +23,8 @@ object AddressPointService extends App with Service {
   lazy val host = Properties.envOrElse("ELASTICSEARCH_HOST", config.getString("elasticsearch.host"))
   lazy val port = Properties.envOrElse("ELASTICSEARCH_PORT", config.getString("elasticsearch.port"))
   lazy val client = new TransportClient().addTransportAddress(new InetSocketTransportAddress(host, port.toInt))
+
+  val fileUploadActor = system.actorOf(FileUploadActor.props, "file-upload")
 
   Http().bindAndHandle(routes, config.getString("http.interface"), config.getInt("http.port"))
 

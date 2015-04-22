@@ -3,6 +3,7 @@ package addresspoints.api
 import java.net.InetAddress
 import java.time.Instant
 
+import addresspoints.actor.FileUploadActor
 import addresspoints.model.{ AddressInput, Status }
 import addresspoints.protocol.JsonProtocol
 import akka.actor.ActorSystem
@@ -10,10 +11,12 @@ import akka.event.LoggingAdapter
 import akka.http.coding.{ Deflate, Gzip, NoCoding }
 import akka.http.marshalling.ToResponseMarshallable
 import akka.http.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.model.Multipart.FormData
 import akka.http.model.StatusCodes._
 import akka.http.server.Directives._
 import akka.http.server.StandardRoute
 import akka.stream.ActorFlowMaterializer
+import akka.util.Timeout
 import com.typesafe.config.Config
 import grasshopper.elasticsearch.Geocode
 import org.elasticsearch.client.Client
@@ -23,6 +26,8 @@ import spray.json._
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import io.geojson.FeatureJsonProtocol._
+import scala.concurrent.duration._
+import akka.pattern.ask
 
 trait Service extends JsonProtocol with Geocode {
   implicit val system: ActorSystem
@@ -39,35 +44,55 @@ trait Service extends JsonProtocol with Geocode {
   override lazy val log = Logger(LoggerFactory.getLogger("grasshopper-address-points"))
 
   val routes = {
-    path("status") {
+    path("upload") {
       get {
-        encodeResponseWith(NoCoding, Gzip, Deflate) {
-          complete {
-            // Creates ISO-8601 date string in UTC down to millisecond precision
-            val now = Instant.now.toString
-            val host = InetAddress.getLocalHost.getHostName
-            val status = Status("OK", now, host)
-            log.info(status.toJson.toString())
-            ToResponseMarshallable(status)
-          }
-        }
+        getFromResource("web/index.html")
       }
     } ~
+      path("status") {
+        get {
+          encodeResponseWith(NoCoding, Gzip, Deflate) {
+            complete {
+              // Creates ISO-8601 date string in UTC down to millisecond precision
+              val now = Instant.now.toString
+              val host = InetAddress.getLocalHost.getHostName
+              val status = Status("OK", now, host)
+              log.info(status.toJson.toString())
+              ToResponseMarshallable(status)
+            }
+          }
+        }
+      } ~
       pathPrefix("addresses") {
         pathPrefix("points") {
-          post {
-            encodeResponseWith(NoCoding, Gzip, Deflate) {
-              entity(as[String]) { json =>
-                try {
-                  val addressInput = json.parseJson.convertTo[AddressInput]
-                  geocodePoints(addressInput.address, 1)
-                } catch {
-                  case e: spray.json.DeserializationException =>
-                    complete(BadRequest)
+          path("batch") {
+            post {
+              implicit val timeout = Timeout(5.seconds)
+              import FileUploadActor._
+              val fileUploadActor = system.actorSelection("/user/file-upload")
+
+              entity(as[FormData]) { formData =>
+                onSuccess(fileUploadActor ? FileUpload(formData)) {
+                  case fileUploaded: FileUploaded =>
+                    complete("file uploaded")
+
                 }
               }
             }
           } ~
+            post {
+              encodeResponseWith(NoCoding, Gzip, Deflate) {
+                entity(as[String]) { json =>
+                  try {
+                    val addressInput = json.parseJson.convertTo[AddressInput]
+                    geocodePoints(addressInput.address, 1)
+                  } catch {
+                    case e: spray.json.DeserializationException =>
+                      complete(BadRequest)
+                  }
+                }
+              }
+            } ~
             get {
               path(Segment) { address =>
                 parameters('suggest.as[Int] ? 1) { suggest =>
