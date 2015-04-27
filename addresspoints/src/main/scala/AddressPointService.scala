@@ -26,6 +26,5 @@ object AddressPointService extends App with Service {
 
   val fileUploadActor = system.actorOf(FileUploadActor.props, "file-upload")
 
-  Http().bindAndHandle(routes, config.getString("http.interface"), config.getInt("http.port"))
+  val http = Http().bindAndHandle(routes, config.getString("http.interface"), config.getInt("http.port"))
 
-}
