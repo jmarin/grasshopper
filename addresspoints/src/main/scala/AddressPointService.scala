@@ -28,3 +28,4 @@ object AddressPointService extends App with Service {
 
   val http = Http().bindAndHandle(routes, config.getString("http.interface"), config.getInt("http.port"))
 
+}

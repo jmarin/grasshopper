@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory
 import io.geojson.FeatureJsonProtocol._
 import scala.concurrent.duration._
 import akka.pattern.ask
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import feature._
 
 trait Service extends JsonProtocol with Geocode {
@@ -78,7 +78,7 @@ trait Service extends JsonProtocol with Geocode {
                 onSuccess(fileUploadActor ? FileUpload(formData)) {
                   case fileUploaded: FileUploaded =>
                     val it = Files.lines(fileUploaded.path).iterator()
-                    val source = Source(() => it)
+                    val source = Source(() => it.asScala)
 
                     val flow = Flow[String]
                       .map(a => geocode(client, "address", "point", a, 1))
