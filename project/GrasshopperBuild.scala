@@ -21,8 +21,7 @@ object BuildSettings {
         "-Xlint",
         "-deprecation",
         "-unchecked",
-        "-feature",
-        "-Xfatal-warnings")
+        "-feature")
     )
 }
 

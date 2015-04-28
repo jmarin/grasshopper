@@ -2,7 +2,7 @@ package addresspoints.actor
 
 import java.nio.file.{ Files, Path, StandardOpenOption }
 import akka.actor.{ Actor, ActorLogging, Props }
-import akka.http.model.Multipart.FormData
+import akka.http.scaladsl.model.Multipart.FormData
 import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl.Source
 import scala.util.Random

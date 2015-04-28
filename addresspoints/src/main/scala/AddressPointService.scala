@@ -4,7 +4,7 @@ import addresspoints.actor.FileUploadActor
 import addresspoints.api.Service
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.http.Http
+import akka.http.scaladsl.Http
 import akka.stream.ActorFlowMaterializer
 import com.typesafe.config.ConfigFactory
 import org.elasticsearch.client.transport.TransportClient
@@ -26,6 +26,6 @@ object AddressPointService extends App with Service {
 
   val fileUploadActor = system.actorOf(FileUploadActor.props, "file-upload")
 
-  val http = Http().bindAndHandle(routes, config.getString("http.interface"), config.getInt("http.port"))
+  val http = Http(system).bindAndHandle(routes, config.getString("http.interface"), config.getInt("http.port"))
 
 }

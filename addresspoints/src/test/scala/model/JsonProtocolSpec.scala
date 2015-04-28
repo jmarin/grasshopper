@@ -1,8 +1,6 @@
-package grasshopper.addresspoints
+package addresspoints.model
 
 import java.net.InetAddress
-
-import addresspoints.model.{ Status, AddressInput }
 import addresspoints.protocol.JsonProtocol
 import org.scalatest._
 import spray.json._
