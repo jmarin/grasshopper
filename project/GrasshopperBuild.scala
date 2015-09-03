@@ -143,4 +143,14 @@ object GrasshopperBuild extends Build {
     ).dependsOn(client, metrics)
 
 
+  lazy val test_harness = (project in file("test-harness"))
+    .configs(IntegrationTest)
+    .settings(buildSettings: _*)
+    .settings(
+      Seq(
+        assemblyJarName in assembly := {s"grasshopper-${name.value}.jar"},
+        libraryDependencies ++= akkaHttpDeps ++ scaleDeps
+      )
+    )
+    .dependsOn(geocoder)
 }
