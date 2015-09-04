@@ -27,6 +27,7 @@ object BatchTest {
       .via(GeocodeETL.address2GeocodeTestResult)
       .via(GeocodeETL.overlayTract)
       .via(GeocodeETL.addressPointsGeocode)
+      .via(GeocodeETL.toCSV)
       .runWith(Sink.foreach(println))
       .onComplete(_ => system.shutdown())
 

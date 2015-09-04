@@ -50,7 +50,7 @@ class GeocodeETLSpec extends FlatSpec with MustMatchers {
     val csvList = source
       .via(GeocodeETL.address2Feature)
       .via(GeocodeETL.overlayTract)
-      .via(GeocodeETL.toCsv)
+      .via(GeocodeETL.toCSV)
       .grouped(1)
       .runWith(Sink.head)
     csvList.foreach(c => c(0).toString mustBe s"${address},01234567890")

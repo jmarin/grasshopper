@@ -60,11 +60,11 @@ object GeocodeETL {
       }
   }
 
-  def toCsv: Flow[TestGeocodeResult, String, Unit] = {
+  def toCSV: Flow[TestGeocodeResult, String, Unit] = {
     Flow[TestGeocodeResult]
       .map { t =>
         println(t)
-        s"${t.inputAddress},${t.x},${t.y},${t.tract},${t.ax},${t.ay},${t.aFoundAddress},${t.addressMatch},${t.cx},${t.cy}}"
+        s"${t.inputAddress},${t.x},${t.y},${t.tract},${t.ax},${t.ay},${t.aFoundAddress},${t.addressMatch},${t.cx},${t.cy}"
       }
   }
 
