@@ -21,15 +21,23 @@ object GeocodeETL {
       .map(t => tractJoin(t))
   }
 
-//    def addressPointsGeocode(implicit ec: ExecutionContext): Flow[TestGeocodeResult, TestGeocodeResult, Unit] = {
-//      Flow[TestGeocodeResult]
-//        .map{ t =>
-//          val a = t.inputAddress
-//          GeocodeFlows.addressPointsFlow.map { r =>
-//            TestGeocodeResult(t.inputAddress, t.x, t.y, t.tract, r.longitude, r.latitude, r.input)
-//          }
-//      }
-//    }
+  def addressPointsGeocode(implicit ec: ExecutionContext): Flow[TestGeocodeResult, TestGeocodeResult, Unit] = {
+    Flow[TestGeocodeResult]
+      .mapAsync(4) { t =>
+        val a = t.inputAddress
+        val lon = t.x
+        val lat = t.y
+        val tract = t.tract
+        for {
+          x <- AddressPointsClient.geocode(a) if x.isRight
+          result = x.right.getOrElse(AddressPointsResult.empty)
+          features = result.features.toList
+          longitude = if (features.nonEmpty) features.head.geometry.centroid.x else 0
+          latitude = if (features.nonEmpty) features.head.geometry.centroid.y else 0
+          foundAddress = if (features.nonEmpty) features.head.get("address").getOrElse("").toString else ""
+        } yield TestGeocodeResult(a, lon, lat, tract, lon, lat, foundAddress, 1)
+      }
+  }
 
   def addressPointsFlow(implicit ec: ExecutionContext): Flow[Feature, Feature, Unit] = {
     Flow[Feature]
@@ -52,17 +60,25 @@ object GeocodeETL {
       }
   }
 
-  def toCsv: Flow[Feature, String, Unit] = {
-    Flow[Feature]
-      .map { f =>
-        val p = f.geometry.asInstanceOf[Point]
-        val x = p.x
-        val y = p.y
-        val address = f.get("address").getOrElse("")
-        val tract = f.get("GEOID10").getOrElse("")
-        s"${address},${x},${y},${tract}"
+  def toCsv: Flow[TestGeocodeResult, String, Unit] = {
+    Flow[TestGeocodeResult]
+      .map { t =>
+        println(t)
+        s"${t.inputAddress},${t.x},${t.y},${t.tract},${t.ax},${t.ay},${t.aFoundAddress},${t.addressMatch},${t.cx},${t.cy}}"
       }
   }
+
+  //  def toCsv: Flow[Feature, String, Unit] = {
+  //    Flow[Feature]
+  //      .map { f =>
+  //        val p = f.geometry.asInstanceOf[Point]
+  //        val x = p.x
+  //        val y = p.y
+  //        val address = f.get("address").getOrElse("")
+  //        val tract = f.get("GEOID10").getOrElse("")
+  //        s"${address},${x},${y},${tract}"
+  //      }
+  //  }
 
   //Dummy function for now. Replace with real point in poly lookup
   def tractJoin(t: TestGeocodeResult): TestGeocodeResult = {

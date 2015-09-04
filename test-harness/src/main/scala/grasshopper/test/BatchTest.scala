@@ -26,15 +26,9 @@ object BatchTest {
     source
       .via(GeocodeETL.address2GeocodeTestResult)
       .via(GeocodeETL.overlayTract)
-      //.via(GeocodeETL.addressPointsFlow)
-      //.via(GeocodeETL.toCsv)
+      .via(GeocodeETL.addressPointsGeocode)
       .runWith(Sink.foreach(println))
-
-    //    val source = Source
-    //      .synchronousFile(testFile)
-    //      //.via(Framing.delimiter(ByteString(System.lineSeparator), maximumFrameLength = 512, allowTruncation = true))
-    //      .map(_.utf8String)
-    //      .runWith(Sink.onComplete(_ => system.shutdown()))
+      .onComplete(_ => system.shutdown())
 
   }
 
