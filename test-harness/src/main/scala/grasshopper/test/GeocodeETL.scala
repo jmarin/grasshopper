@@ -36,7 +36,7 @@ object GeocodeETL {
           longitude = if (features.nonEmpty) features.head.geometry.centroid.x else 0
           latitude = if (features.nonEmpty) features.head.geometry.centroid.y else 0
           foundAddress = if (features.nonEmpty) features.head.get("address").getOrElse("").toString else ""
-        } yield TestGeocode(a, lon, lat, tract, lon, lat, foundAddress, 1)
+        } yield TestGeocode(a, lon, lat, tract, longitude, latitude, foundAddress, 1)
       }
   }
 
@@ -70,7 +70,6 @@ object GeocodeETL {
   def toCSV: Flow[TestGeocode, String, Unit] = {
     Flow[TestGeocode]
       .map { t =>
-        println(t)
         s"${t.inputAddress},${t.x},${t.y},${t.tract},${t.ax},${t.ay},${t.aFoundAddress},${t.addressMatch},${t.cx},${t.cy}"
       }
   }
