@@ -24,7 +24,7 @@ object BatchTest {
     val it = Files.lines(path).iterator()
     val source = Source(() => it.asScala)
     source
-      .via(GeocodeETL.address2GeocodeTestResult)
+      .via(GeocodeETL.addressParse)
       .via(GeocodeETL.overlayTract)
       .via(GeocodeETL.addressPointsGeocode)
       .via(GeocodeETL.toCSV)

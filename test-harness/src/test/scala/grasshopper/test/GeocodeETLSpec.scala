@@ -3,8 +3,7 @@ package grasshopper.test
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
-import feature._
-import geometry.Point
+import grasshopper.test.model.TestGeocodeResult
 import org.scalatest.{ FlatSpec, MustMatchers }
 
 class GeocodeETLSpec extends FlatSpec with MustMatchers {
@@ -22,24 +21,16 @@ class GeocodeETLSpec extends FlatSpec with MustMatchers {
   //source.via(GeocodeETL.address2Feature).runWith(Sink.foreach(println))
 
   "Overlay with tract" should "perform spatial join" in {
-    val p = Point(-77, 38)
-    val schema = Schema(List(
-      Field("geom", GeometryType()),
-      Field("address", StringType())
-    ))
-    val values = Map("geometry" -> p, "address" -> "301 E Northern Lights Blvd Anchorage Alaska 99503")
-    val f = Feature(schema, values)
-    val ft = GeocodeETL.tractJoin(f)
-    ft.geometry mustBe p
-    ft.get("GEOID10").getOrElse("") mustBe "01234567890"
+    val input = TestGeocodeResult("123 Main St", -77, 38)
+    GeocodeETL.tractJoin(input) mustBe TestGeocodeResult("123 Main St", -77, 38, "01234567890")
   }
 
   "Overlay with list of tracts" should "perform spatial join" in {
     val tracts = source
-      .via(GeocodeETL.address2Feature)
+      .via(GeocodeETL.addressParse)
       .via(GeocodeETL.overlayTract)
-      .map { f =>
-        f.get("GEOID10").getOrElse("") mustBe "01234567890"
+      .map { t =>
+        t.tract mustBe "01234567890"
       }
   }
 
@@ -48,13 +39,12 @@ class GeocodeETLSpec extends FlatSpec with MustMatchers {
     val addresses = List(address).toIterator
     val source = Source(() => addresses)
     val csvList = source
-      .via(GeocodeETL.address2Feature)
+      .via(GeocodeETL.addressParse)
       .via(GeocodeETL.overlayTract)
       .via(GeocodeETL.toCSV)
       .grouped(1)
       .runWith(Sink.head)
-    csvList.foreach(c => c(0).toString mustBe s"${address},01234567890")
-
+    csvList.foreach(c => c(0).toString mustBe s"${address},01234567890,0.0,0.0,,0.0,0.0,0.0")
   }
 
 }
