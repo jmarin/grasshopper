@@ -23,13 +23,18 @@ object BatchTest {
 
     val it = Files.lines(path).iterator()
     val source = Source(() => it.asScala)
+    //    source
+    //      .via(GeocodeETL.addressRead)
+    //      .via(GeocodeETL.overlayTract)
+    //      .via(GeocodeETL.addressPointsGeocode)
+    //      .via(GeocodeETL.toCSV)
+    //      .runWith(Sink.foreach(println))
+    //      .onComplete(_ => system.shutdown())
+
     source
-      .via(GeocodeETL.addressParse)
-      .via(GeocodeETL.overlayTract)
-      .via(GeocodeETL.addressPointsGeocode)
-      .via(GeocodeETL.toCSV)
+      .via(GeocodeETL.etl)
       .runWith(Sink.foreach(println))
-      .onComplete(_ => system.shutdown())
+    //.onComplete(_ => system.shutdown())
 
   }
 
