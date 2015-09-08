@@ -32,7 +32,7 @@ object BatchTest {
     //      .onComplete(_ => system.shutdown())
 
     source
-      .via(GeocodeETL.etl)
+      .via(GeocodeETL.geocodeAddresses)
       .runWith(Sink.foreach(println))
     //.onComplete(_ => system.shutdown())
 
