@@ -81,7 +81,7 @@ object GeocodeETL {
       }
   }
 
-  def geocodeAddresses(implicit ec: ExecutionContext) = {
+  def geocodeAddresses(implicit ec: ExecutionContext): Flow[String, (AddressPointGeocode, CensusGeocode), Unit] = {
     Flow() { implicit b =>
       import FlowGraph.Implicits._
 
@@ -101,7 +101,7 @@ object GeocodeETL {
 
     }
   }
-  
+
   //Dummy function for now. Replace with real point in poly lookup
   def tractJoin(a: InputAddress): CensusOverlay = {
     val tract = "01234567890"
