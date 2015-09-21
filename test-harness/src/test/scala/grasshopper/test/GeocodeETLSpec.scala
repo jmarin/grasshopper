@@ -2,7 +2,7 @@ package grasshopper.test
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.Source
 import grasshopper.test.model.TestGeocode
 import org.scalatest.{ FlatSpec, MustMatchers }
 
@@ -30,7 +30,7 @@ class GeocodeETLSpec extends FlatSpec with MustMatchers {
       .via(GeocodeETL.addressRead)
       .via(GeocodeETL.censusOverlay)
       .map { t =>
-        //t.tract mustBe "01234567890"
+        t.geoid10 mustBe "01234567890"
       }
   }
 

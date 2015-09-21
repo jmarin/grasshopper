@@ -5,10 +5,11 @@ import geometry.Point
 import grasshopper.client.addresspoints.AddressPointsClient
 import grasshopper.client.addresspoints.model.AddressPointsResult
 import grasshopper.client.census.CensusClient
-import grasshopper.client.census.model.{ CensusResult, ParsedInputAddress }
+import grasshopper.client.census.model.{ CensusResult }
 import grasshopper.client.parser.AddressParserClient
 import grasshopper.client.parser.model.ParsedAddress
 import grasshopper.test.model._
+import grasshopper.test.util.Haversine
 
 import scala.concurrent.ExecutionContext
 
@@ -36,37 +37,39 @@ object GeocodeETL {
           latitude = if (features.nonEmpty) features.head.geometry.centroid.y else 0
           foundAddress = if (features.nonEmpty) features.head.get("address").getOrElse("").toString else ""
           matchAddress = if (features.nonEmpty) features.head.get("match").getOrElse(0).toString.toDouble else 0
-        } yield AddressPointGeocode(t, Point(longitude, latitude), foundAddress, matchAddress)
+          distance = Haversine.distance(Point(longitude, latitude), t.point)
+        } yield AddressPointGeocode(t, Point(longitude, latitude), foundAddress, matchAddress, distance)
       }
   }
 
-  def addressParse(implicit ec: ExecutionContext): Flow[InputAddress, ParsedInputAddress, Unit] = {
+  def addressParse(implicit ec: ExecutionContext): Flow[InputAddress, CensusInputAddress, Unit] = {
     Flow[InputAddress]
       .mapAsync(4) { a =>
         for {
           x <- AddressParserClient.standardize(a.inputAddress)
           y = x.right.getOrElse(ParsedAddress.empty)
-          p = ParsedInputAddress(y.parts.addressNumber.toInt, y.parts.streetName, y.parts.zip, y.parts.state)
+          p = CensusInputAddress(y.parts.addressNumber.toInt, y.parts.streetName, y.parts.zip, y.parts.state, a.point)
         } yield p
       }
   }
 
-  def censusGeocode(implicit ec: ExecutionContext): Flow[ParsedInputAddress, CensusGeocode, Unit] = {
-    Flow[ParsedInputAddress]
+  def censusGeocode(implicit ec: ExecutionContext): Flow[CensusInputAddress, CensusGeocode, Unit] = {
+    Flow[CensusInputAddress]
       .mapAsync(4) { p =>
         val a = p.toString
         for {
-          x <- CensusClient.geocode(p)
+          x <- CensusClient.geocode(grasshopper.client.census.model.ParsedInputAddress(p.number, p.streetName, p.zipCode, p.state))
           y = x.right.getOrElse(CensusResult.empty)
           features = y.features.toList
           longitude = if (features.nonEmpty) features.head.geometry.centroid.x else 0
           latitude = if (features.nonEmpty) features.head.geometry.centroid.y else 0
-        } yield CensusGeocode(InputAddress(p.toString, Point(0, 0)), Point(longitude, latitude))
+          distance = Haversine.distance(Point(longitude, latitude), p.point)
+        } yield CensusGeocode(InputAddress(p.toString, p.point), Point(longitude, latitude), distance)
       }
   }
 
-  def toCSV: Flow[(ParsedInputAddress, TestGeocode), String, Unit] = {
-    Flow[(ParsedInputAddress, TestGeocode)]
+  def toCSV: Flow[(CensusInputAddress, TestGeocode), String, Unit] = {
+    Flow[(CensusInputAddress, TestGeocode)]
       .map { t =>
         s"${t._2.inputAddress}" +
           s",${t._2.x}" +
