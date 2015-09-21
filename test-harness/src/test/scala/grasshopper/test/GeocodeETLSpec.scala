@@ -34,17 +34,17 @@ class GeocodeETLSpec extends FlatSpec with MustMatchers {
       }
   }
 
-  it should "convert results to CSV" in {
-    val address = "301 E Northern Lights Blvd Anchorage Alaska 99503,-149.87853,61.195315"
-    val addresses = List(address).toIterator
-    val source = Source(() => addresses)
-    val csvList = source
-      .via(GeocodeETL.addressRead)
-      .via(GeocodeETL.censusOverlay)
-      //.via(GeocodeETL.toCSV)
-      .grouped(1)
-      .runWith(Sink.head)
-    csvList.foreach(c => c(0).toString mustBe s"${address},01234567890,0.0,0.0,,0.0,0.0,0.0")
-  }
+  //  it should "convert results to CSV" in {
+  //    val address = "301 E Northern Lights Blvd Anchorage Alaska 99503,-149.87853,61.195315"
+  //    val addresses = List(address).toIterator
+  //    val source = Source(() => addresses)
+  //    val csvList = source
+  //      .via(GeocodeETL.addressRead)
+  //      .via(GeocodeETL.censusOverlay)
+  //      //.via(GeocodeETL.toCSV)
+  //      .grouped(1)
+  //      .runWith(Sink.head)
+  //    csvList.foreach(c => c(0).toString mustBe s"${address},01234567890,0.0,0.0,,0.0,0.0,0.0")
+  //  }
 
 }

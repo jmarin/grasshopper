@@ -1,5 +1,6 @@
 package grasshopper.test.util
 
+import geometry.Point
 import org.scalatest.{ MustMatchers, FlatSpec }
 
 class HaversineSpec extends FlatSpec with MustMatchers {
@@ -10,6 +11,9 @@ class HaversineSpec extends FlatSpec with MustMatchers {
     val lat2 = 33.94
     val lon2 = -118.40
 
-    Haversine.distance(lat1, lon1, lat2, lon2) mustBe 2887.2599506071106
+    val p1 = Point(lon1, lat1)
+    val p2 = Point(lon2, lat2)
+
+    Haversine.distance(p1, p2) mustBe 2887.2599506071106
   }
 }
