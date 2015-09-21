@@ -33,6 +33,8 @@ object BatchTest {
 
     source
       .via(GeocodeETL.geocodeAddresses)
+      .via(GeocodeETL.results)
+      .via(GeocodeETL.toCSV)
       .runWith(Sink.foreach(println))
     //.onComplete(_ => system.shutdown())
 

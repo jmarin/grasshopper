@@ -15,18 +15,18 @@ import scala.concurrent.ExecutionContext
 
 object GeocodeETL {
 
-  def addressRead: Flow[String, InputAddress, Unit] = {
+  def addressRead: Flow[String, PointInputAddress, Unit] = {
     Flow[String]
       .map(a => readAddress(a, ","))
   }
 
-  def censusOverlay: Flow[InputAddress, CensusOverlay, Unit] = {
-    Flow[InputAddress]
+  def censusOverlay: Flow[AddressPointGeocode, AddressPointGeocodeTract, Unit] = {
+    Flow[AddressPointGeocode]
       .map(t => tractJoin(t))
   }
 
-  def addressPointsGeocode(implicit ec: ExecutionContext): Flow[InputAddress, AddressPointGeocode, Unit] = {
-    Flow[InputAddress]
+  def addressPointsGeocode(implicit ec: ExecutionContext): Flow[PointInputAddress, AddressPointGeocode, Unit] = {
+    Flow[PointInputAddress]
       .mapAsync(4) { t =>
         val a = t.inputAddress
         for {
@@ -42,8 +42,8 @@ object GeocodeETL {
       }
   }
 
-  def addressParse(implicit ec: ExecutionContext): Flow[InputAddress, CensusInputAddress, Unit] = {
-    Flow[InputAddress]
+  def addressParse(implicit ec: ExecutionContext): Flow[PointInputAddress, CensusInputAddress, Unit] = {
+    Flow[PointInputAddress]
       .mapAsync(4) { a =>
         for {
           x <- AddressParserClient.standardize(a.inputAddress)
@@ -64,40 +64,58 @@ object GeocodeETL {
           longitude = if (features.nonEmpty) features.head.geometry.centroid.x else 0
           latitude = if (features.nonEmpty) features.head.geometry.centroid.y else 0
           distance = Haversine.distance(Point(longitude, latitude), p.point)
-        } yield CensusGeocode(InputAddress(p.toString, p.point), Point(longitude, latitude), distance)
+        } yield CensusGeocode(PointInputAddress(p.toString, p.point), Point(longitude, latitude), distance)
       }
   }
 
-  def toCSV: Flow[(CensusInputAddress, TestGeocode), String, Unit] = {
-    Flow[(CensusInputAddress, TestGeocode)]
+  def toCSV: Flow[TestResult, String, Unit] = {
+    Flow[TestResult]
       .map { t =>
-        s"${t._2.inputAddress}" +
-          s",${t._2.x}" +
-          s",${t._2.y}" +
-          s",${t._2.tract}" +
-          s",${t._2.ax}" +
-          s",${t._2.ay}" +
-          s",${t._2.aFoundAddress}" +
-          s",${t._2.addressMatch}" +
-          s",${t._2.cx}" +
-          s",${t._2.cy}"
+        val pointGeocode = t.addressPointTract
+        val censusGeocode = t.censusGeocode
+        val inputAddress = t.addressPointTract.addressPointGeocode.inputAddress
+        val inputLongitude = t.addressPointTract.addressPointGeocode.inputAddress.point.y
+        val inputLatitude = t.addressPointTract.addressPointGeocode.inputAddress.point.x
+        val tract = t.addressPointTract.geoid10
+        val pLongitude = t.addressPointTract.addressPointGeocode.point.y
+        val pLatitude = t.addressPointTract.addressPointGeocode.point.x
+        val pFoundAddress = t.addressPointTract.addressPointGeocode.foundAddress
+        val pMatch = t.addressPointTract.addressPointGeocode.addressMatch
+        val pDist = t.addressPointTract.addressPointGeocode.distance
+        val cLongitude = t.censusGeocode.point.y
+        val cLatitude = t.censusGeocode.point.x
+        val cDist = t.censusGeocode.distance
+
+        s"${inputAddress.inputAddress}," +
+          s"${inputAddress.point.y}," +
+          s"${inputAddress.point.x}," +
+          s"$pLongitude," +
+          s"$pLatitude," +
+          s"$pFoundAddress," +
+          s"$pMatch," +
+          s"$pDist," +
+          s"$tract," +
+          s"$cLongitude," +
+          s"$cLatitude," +
+          s"$cDist"
       }
   }
 
-  def geocodeAddresses(implicit ec: ExecutionContext): Flow[String, (AddressPointGeocode, CensusGeocode), Unit] = {
+  def geocodeAddresses(implicit ec: ExecutionContext): Flow[String, (AddressPointGeocodeTract, CensusGeocode), Unit] = {
     Flow() { implicit b =>
       import FlowGraph.Implicits._
 
       val address = b.add(Flow[String])
       val read = b.add(addressRead)
-      val broadcast = b.add(Broadcast[InputAddress](2))
+      val broadcast = b.add(Broadcast[PointInputAddress](2))
       val points = b.add(addressPointsGeocode)
+      val tracts = b.add(censusOverlay)
       val parsedAddress = b.add(addressParse)
       val census = b.add(censusGeocode)
-      val zip = b.add(Zip[AddressPointGeocode, CensusGeocode])
+      val zip = b.add(Zip[AddressPointGeocodeTract, CensusGeocode])
 
       address ~> read ~> broadcast.in
-      broadcast.out(0) ~> points ~> zip.in0
+      broadcast.out(0) ~> points ~> tracts ~> zip.in0
       broadcast.out(1) ~> parsedAddress ~> census ~> zip.in1
 
       (address.inlet, zip.out)
@@ -105,18 +123,22 @@ object GeocodeETL {
     }
   }
 
-  //Dummy function for now. Replace with real point in poly lookup
-  def tractJoin(a: InputAddress): CensusOverlay = {
-    val tract = "01234567890"
-    CensusOverlay(a, tract)
+  def results: Flow[(AddressPointGeocodeTract, CensusGeocode), TestResult, Unit] = {
+    Flow[(AddressPointGeocodeTract, CensusGeocode)].map(a => TestResult(a._1, a._2))
   }
 
-  private def readAddress(address: String, separator: String): InputAddress = {
+  //Dummy function for now. Replace with real point in poly lookup
+  def tractJoin(a: AddressPointGeocode): AddressPointGeocodeTract = {
+    val tract = "01234567890"
+    AddressPointGeocodeTract(a, tract)
+  }
+
+  private def readAddress(address: String, separator: String): PointInputAddress = {
     val parts = address.split(separator)
     val a = parts(0)
     val x = parts(1).toDouble
     val y = parts(2).toDouble
-    InputAddress(a, Point(x, y))
+    PointInputAddress(a, Point(x, y))
   }
 
 }

@@ -1,3 +1,3 @@
 package grasshopper.test.model
 
-case class CensusOverlay(inputAddress: InputAddress, geoid10: String)
+case class CensusOverlay(inputAddress: PointInputAddress, geoid10: String)
