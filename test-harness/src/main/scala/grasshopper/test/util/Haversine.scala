@@ -4,10 +4,10 @@ import geometry.Point
 
 import math._
 
-// Calculates the distance between two points on the surface of the earth (in km)
+// Calculates the great-circle distance between two points on the surface of the earth (in km)
 // See https://en.wikipedia.org/wiki/Haversine_formula
 object Haversine {
-  val R = 6372.8 // earth's radius, in km
+  val R = 6371 // Mean Earth Radius, see https://en.wikipedia.org/wiki/Earth_radius#Mean_radius
 
   def distance(p1: Point, p2: Point): Double = {
     val lat1 = p1.y

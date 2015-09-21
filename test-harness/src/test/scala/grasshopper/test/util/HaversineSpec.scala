@@ -14,6 +14,6 @@ class HaversineSpec extends FlatSpec with MustMatchers {
     val p1 = Point(lon1, lat1)
     val p2 = Point(lon2, lat2)
 
-    Haversine.distance(p1, p2) mustBe 2887.2599506071106
+    Haversine.distance(p1, p2) mustBe 2886.4444428379834
   }
 }
