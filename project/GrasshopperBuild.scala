@@ -142,6 +142,7 @@ object GrasshopperBuild extends Build {
       )
     ).dependsOn(client, metrics)
 
+  lazy val hmdaGeo = ProjectRef(uri("git://github.com/jmarin/hmda-geo.git#tracts"), "client")
 
   lazy val test_harness = (project in file("test-harness"))
     .configs(IntegrationTest)
@@ -152,5 +153,5 @@ object GrasshopperBuild extends Build {
         libraryDependencies ++= akkaHttpDeps ++ scaleDeps
       )
     )
-    .dependsOn(geocoder)
+    .dependsOn(geocoder, hmdaGeo)
 }

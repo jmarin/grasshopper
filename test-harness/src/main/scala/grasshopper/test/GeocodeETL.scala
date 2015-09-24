@@ -10,8 +10,9 @@ import grasshopper.client.parser.AddressParserClient
 import grasshopper.client.parser.model.ParsedAddress
 import grasshopper.test.model._
 import grasshopper.test.util.Haversine
-
 import scala.concurrent.ExecutionContext
+import hmda.geo.client.api.HMDAGeoClient
+import hmda.geo.client.api.model.census.HMDAGeoTractResult
 
 object GeocodeETL {
 
@@ -20,9 +21,16 @@ object GeocodeETL {
       .map(a => readAddress(a, ","))
   }
 
-  def censusOverlay: Flow[AddressPointGeocode, AddressPointGeocodeTract, Unit] = {
-    Flow[AddressPointGeocode]
-      .map(t => tractJoin(t))
+  def tractOverlay(implicit ec: ExecutionContext): Flow[PointInputAddress, PointInputAddressTract, Unit] = {
+    Flow[PointInputAddress]
+      .mapAsync(4) { i =>
+        val p = i.point
+        for {
+          x <- HMDAGeoClient.findTractByPoint(p) if x.isRight
+          y = x.right.getOrElse(HMDAGeoTractResult.empty)
+          geoid = y.geoid
+        } yield PointInputAddressTract(i, geoid)
+      }
   }
 
   def addressPointsGeocode(implicit ec: ExecutionContext): Flow[PointInputAddress, AddressPointGeocode, Unit] = {
@@ -42,14 +50,25 @@ object GeocodeETL {
       }
   }
 
+  def addressPointTractOverlay(implicit ec: ExecutionContext): Flow[AddressPointGeocode, AddressPointGeocodeTract, Unit] = {
+    Flow[AddressPointGeocode]
+      .mapAsync(4) { a =>
+        val p = a.point
+        for {
+          x <- HMDAGeoClient.findTractByPoint(p) if x.isRight
+          y = x.right.getOrElse(HMDAGeoTractResult.empty)
+          geoid = y.geoid
+        } yield AddressPointGeocodeTract(a, geoid)
+      }
+  }
+
   def addressParse(implicit ec: ExecutionContext): Flow[PointInputAddress, CensusInputAddress, Unit] = {
     Flow[PointInputAddress]
       .mapAsync(4) { a =>
         for {
           x <- AddressParserClient.standardize(a.inputAddress)
           y = x.right.getOrElse(ParsedAddress.empty)
-          p = CensusInputAddress(y.parts.addressNumber.toInt, y.parts.streetName, y.parts.zip, y.parts.state, a.point)
-        } yield p
+        } yield CensusInputAddress(y.parts.addressNumber.toInt, y.parts.streetName, y.parts.zip, y.parts.state, a.point)
       }
   }
 
@@ -109,7 +128,7 @@ object GeocodeETL {
       val read = b.add(addressRead)
       val broadcast = b.add(Broadcast[PointInputAddress](2))
       val points = b.add(addressPointsGeocode)
-      val tracts = b.add(censusOverlay)
+      val tracts = b.add(addressPointTractOverlay)
       val parsedAddress = b.add(addressParse)
       val census = b.add(censusGeocode)
       val zip = b.add(Zip[AddressPointGeocodeTract, CensusGeocode])
@@ -125,12 +144,6 @@ object GeocodeETL {
 
   def results: Flow[(AddressPointGeocodeTract, CensusGeocode), TestResult, Unit] = {
     Flow[(AddressPointGeocodeTract, CensusGeocode)].map(a => TestResult(a._1, a._2))
-  }
-
-  //Dummy function for now. Replace with real point in poly lookup
-  def tractJoin(a: AddressPointGeocode): AddressPointGeocodeTract = {
-    val tract = "01234567890"
-    AddressPointGeocodeTract(a, tract)
   }
 
   private def readAddress(address: String, separator: String): PointInputAddress = {

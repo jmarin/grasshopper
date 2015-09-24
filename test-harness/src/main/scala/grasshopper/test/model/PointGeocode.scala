@@ -2,6 +2,10 @@ package grasshopper.test.model
 
 import geometry.Point
 
+object AddressPointGeocode {
+  def empty: AddressPointGeocode = AddressPointGeocode(PointInputAddress.empty, Point(0, 0), "", 0.0, 0.0)
+}
+
 case class AddressPointGeocode(inputAddress: PointInputAddress, point: Point, foundAddress: String, addressMatch: Double, distance: Double) {
   override def toString(): String = {
     s"${inputAddress.inputAddress}" +
@@ -13,6 +17,10 @@ case class AddressPointGeocode(inputAddress: PointInputAddress, point: Point, fo
       s" $addressMatch," +
       s" $distance"
   }
+}
+
+object AddressPointGeocodeTract {
+  def empty: AddressPointGeocodeTract = AddressPointGeocodeTract(AddressPointGeocode.empty, "00000000000")
 }
 
 case class AddressPointGeocodeTract(addressPointGeocode: AddressPointGeocode, geoid10: String) {

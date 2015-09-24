@@ -1,12 +1,13 @@
 package grasshopper.test
 
 import java.nio.file.{ Files, Paths }
-
+import java.io.File
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
-
+import akka.stream.io.Implicits._
 import scala.collection.JavaConverters._
+import akka.util.ByteString
 
 object BatchTest {
 
@@ -23,20 +24,18 @@ object BatchTest {
 
     val it = Files.lines(path).iterator()
     val source = Source(() => it.asScala)
-    //    source
-    //      .via(GeocodeETL.addressRead)
-    //      .via(GeocodeETL.overlayTract)
-    //      .via(GeocodeETL.addressPointsGeocode)
-    //      .via(GeocodeETL.toCSV)
-    //      .runWith(Sink.foreach(println))
-    //      .onComplete(_ => system.shutdown())
 
     source
       .via(GeocodeETL.geocodeAddresses)
       .via(GeocodeETL.results)
       .via(GeocodeETL.toCSV)
-      .runWith(Sink.foreach(println))
-    //.onComplete(_ => system.shutdown())
+      .map(ByteString(_))
+      .runWith(Sink.synchronousFile(new File("test-harness/target/test-harness-results.csv")))
+      //.runWith(Sink.foreach(println))
+      .onComplete { _ =>
+        system.shutdown()
+        sys.exit(0)
+      }
 
   }
 
