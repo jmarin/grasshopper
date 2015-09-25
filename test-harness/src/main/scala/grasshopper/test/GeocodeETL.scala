@@ -18,7 +18,13 @@ object GeocodeETL {
 
   def addressRead: Flow[String, PointInputAddress, Unit] = {
     Flow[String]
-      .map(a => readAddress(a, ","))
+      .map{ s =>
+        val parts = s.split(",")
+        val a = parts(0)
+        val x = parts(1).toDouble
+        val y = parts(2).toDouble
+        PointInputAddress(a, Point(x, y))
+      }
   }
 
   def tractOverlay(implicit ec: ExecutionContext): Flow[PointInputAddress, PointInputAddressTract, Unit] = {
@@ -146,12 +152,6 @@ object GeocodeETL {
     Flow[(AddressPointGeocodeTract, CensusGeocode)].map(a => TestResult(a._1, a._2))
   }
 
-  private def readAddress(address: String, separator: String): PointInputAddress = {
-    val parts = address.split(separator)
-    val a = parts(0)
-    val x = parts(1).toDouble
-    val y = parts(2).toDouble
-    PointInputAddress(a, Point(x, y))
-  }
+
 
 }
