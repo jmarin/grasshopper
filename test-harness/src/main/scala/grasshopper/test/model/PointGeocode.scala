@@ -23,7 +23,7 @@ object AddressPointGeocodeTract {
   def empty: AddressPointGeocodeTract = AddressPointGeocodeTract(AddressPointGeocode.empty, "00000000000")
 }
 
-case class AddressPointGeocodeTract(addressPointGeocode: AddressPointGeocode, geoid10: String) {
+case class AddressPointGeocodeTract(addressPointGeocode: AddressPointGeocode, geoid: String) {
   override def toString(): String = {
     s"${addressPointGeocode.inputAddress}," +
       s"${addressPointGeocode.inputAddress.point.y}" +
@@ -33,11 +33,11 @@ case class AddressPointGeocodeTract(addressPointGeocode: AddressPointGeocode, ge
       s" ${addressPointGeocode.point.x}," +
       s" ${addressPointGeocode.addressMatch}," +
       s" ${addressPointGeocode.distance}," +
-      s" $geoid10"
+      s" $geoid"
   }
 }
 
-case class CensusGeocode(inputAddress: PointInputAddress, point: Point, distance: Double) {
+case class CensusGeocodePoint(inputAddress: PointInputAddress, point: Point, distance: Double) {
   override def toString(): String = {
     s"${inputAddress.inputAddress}," +
       s"${inputAddress.point.y}," +
@@ -47,4 +47,6 @@ case class CensusGeocode(inputAddress: PointInputAddress, point: Point, distance
       s"$distance"
   }
 }
+
+case class CensusGeocodeTract(censusPointGeocode: CensusGeocodePoint, geoid: String)
 

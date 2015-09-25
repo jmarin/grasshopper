@@ -1,3 +1,3 @@
 package grasshopper.test.model
 
-case class TestResult(addressPointTract: AddressPointGeocodeTract, censusGeocode: CensusGeocode)
+case class TestResult(inputAddressTract: PointInputAddressTract, addressPointTract: AddressPointGeocodeTract, censusGeocodeTract: CensusGeocodeTract)

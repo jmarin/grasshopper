@@ -11,32 +11,35 @@ import akka.util.ByteString
 
 object BatchTest {
 
+  implicit val system = ActorSystem("grasshopper-test-harness")
+  implicit val mat = ActorMaterializer()(system)
+  implicit val ec = system.dispatcher
+
+  val dir = Paths.get(System.getProperty("user.dir"))
+  val path = dir.resolve("test-harness/src/main/resources/addresses.csv")
+
   def main(args: Array[String]): Unit = {
 
-    implicit val system = ActorSystem("grasshopper-test-harness")
-    implicit val mat = ActorMaterializer()
-    implicit val ec = system.dispatcher
-
-    println("Test Harness")
-
-    val dir = Paths.get(System.getProperty("user.dir"))
-    val path = dir.resolve("test-harness/src/main/resources/addresses.csv")
+    println("Processing list of addresses")
 
     val it = Files.lines(path).iterator()
     val source = Source(() => it.asScala)
 
-    source
+    val r = source
       .via(GeocodeETL.geocodeAddresses)
       .via(GeocodeETL.results)
       .via(GeocodeETL.toCSV)
       .map(ByteString(_))
       .runWith(Sink.synchronousFile(new File("test-harness/target/test-harness-results.csv")))
-      //.runWith(Sink.foreach(println))
-      .onComplete { _ =>
-        system.shutdown()
-        sys.exit(0)
-      }
 
+    r.onComplete {
+      case _ =>
+        println("DONE!")
+        system.shutdown()
+        Runtime.getRuntime.exit(0)
+    }
+
+    sys.addShutdownHook(system.shutdown())
   }
 
 }
