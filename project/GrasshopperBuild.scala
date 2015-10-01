@@ -1,9 +1,9 @@
-import sbt._
-import sbt.Keys._
 import com.typesafe.sbt.SbtScalariform._
+import sbt.Keys._
+import sbt._
+import sbtassembly.AssemblyPlugin.autoImport._
 import spray.revolver.RevolverPlugin._
 import wartremover._
-import sbtassembly.AssemblyPlugin.autoImport._
 
 object BuildSettings {
   val buildOrganization = "cfpb"
@@ -28,8 +28,8 @@ object BuildSettings {
 }
 
 object GrasshopperBuild extends Build {
-  import Dependencies._
   import BuildSettings._
+  import Dependencies._
 
   val commonDeps = Seq(logback, scalaLogging, scalaTest, scalaCheck)
 
@@ -48,6 +48,8 @@ object GrasshopperBuild extends Build {
   val geocodeDeps = akkaHttpDeps ++ esDeps ++ scaleDeps ++ metricsDeps
 
   val asyncDeps = Seq(async)
+
+  val mfgLabs = Seq(mfglabs)
 
     
   lazy val grasshopper = (project in file("."))
@@ -90,7 +92,7 @@ object GrasshopperBuild extends Build {
             val oldStrategy = (assemblyMergeStrategy in assembly).value
             oldStrategy(x)
         },
-        libraryDependencies ++= geocodeDeps,
+        libraryDependencies ++= geocodeDeps ++ mfgLabs,
         resolvers ++= repos
       )
     ).dependsOn(elasticsearch, metrics)
@@ -150,7 +152,8 @@ object GrasshopperBuild extends Build {
     .settings(
       Seq(
         assemblyJarName in assembly := {s"grasshopper-${name.value}.jar"},
-        libraryDependencies ++= akkaHttpDeps ++ scaleDeps
+        libraryDependencies ++= akkaHttpDeps ++ scaleDeps ++ mfgLabs,
+        resolvers ++= repos
       )
     )
     .dependsOn(geocoder, hmdaGeo)

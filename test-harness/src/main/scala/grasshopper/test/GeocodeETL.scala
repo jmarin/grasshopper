@@ -4,6 +4,9 @@ import akka.stream.Supervision
 import akka.stream.scaladsl._
 import akka.stream.ActorAttributes.supervisionStrategy
 import Supervision.resumingDecider
+import com.mfglabs.stream.ExecutionContextForBlockingOps
+import com.mfglabs.stream.extensions.elasticsearch.EsStream
+import feature.Feature
 import geometry.Point
 import grasshopper.client.addresspoints.AddressPointsClient
 import grasshopper.client.addresspoints.model.AddressPointsResult
@@ -13,9 +16,15 @@ import grasshopper.client.parser.AddressParserClient
 import grasshopper.client.parser.model.ParsedAddress
 import grasshopper.test.model._
 import grasshopper.test.util.Haversine
+import org.elasticsearch.client.Client
+import org.elasticsearch.index.query.QueryBuilders
 import scala.concurrent.ExecutionContext
 import hmda.geo.client.api.HMDAGeoClient
 import hmda.geo.client.api.model.census.HMDAGeoTractResult
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import spray.json._
+import io.geojson.FeatureJsonProtocol._
 
 object GeocodeETL {
 
@@ -64,6 +73,18 @@ object GeocodeETL {
         } yield AddressPointGeocode(t, Point(longitude, latitude), foundAddress, matchAddress, distance)
       }
       .withAttributes(supervisionStrategy(decider))
+  }
+
+  def addressPointsStream(index: String, indexType: String)(implicit client: Client): Source[String, Unit] = {
+    implicit val ec = ExecutionContextForBlockingOps(ExecutionContext.Implicits.global)
+    EsStream
+      .queryAsStream(
+        QueryBuilders.matchAllQuery(),
+        index = index,
+        `type` = indexType,
+        scrollKeepAlive = 1 minutes,
+        scrollSize = 1000
+      )
   }
 
   def addressPointTractOverlay(implicit ec: ExecutionContext): Flow[AddressPointGeocode, AddressPointGeocodeTract, Unit] = {
@@ -182,9 +203,24 @@ object GeocodeETL {
     }
   }
 
-  def results: Flow[(PointInputAddressTract, (AddressPointGeocodeTract, CensusGeocodeTract)), TestResult, Unit] = {
+  def totalResults: Flow[(PointInputAddressTract, (AddressPointGeocodeTract, CensusGeocodeTract)), TestResult, Unit] = {
     Flow[(PointInputAddressTract, (AddressPointGeocodeTract, CensusGeocodeTract))]
       .map(a => TestResult(a._1, a._2._1, a._2._2))
   }
+
+  def censusTest(implicit ec: ExecutionContext): Flow[PointInputAddress ,CensusGeocodeTract, Unit] = {
+    val source = addressPointsStream("address", "point")
+
+    source.map{ s =>
+      val f = s.toJson.convertTo[Feature]
+      val p = f.geometry.centroid
+      val a = f.get("address").getOrElse("").toString
+      PointInputAddress(a, p)
+    }
+
+
+
+  }
+
 
 }
