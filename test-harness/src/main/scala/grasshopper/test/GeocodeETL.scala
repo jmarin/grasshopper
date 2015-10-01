@@ -45,6 +45,7 @@ object GeocodeETL {
           geoid = y.geoid
         } yield PointInputAddressTract(i, geoid)
       }
+      .withAttributes(supervisionStrategy(decider))
   }
 
   def addressPointsGeocode(implicit ec: ExecutionContext): Flow[PointInputAddress, AddressPointGeocode, Unit] = {
@@ -75,6 +76,7 @@ object GeocodeETL {
           geoid = y.geoid
         } yield AddressPointGeocodeTract(a, geoid)
       }
+      .withAttributes(supervisionStrategy(decider))
   }
 
   def addressParse(implicit ec: ExecutionContext): Flow[PointInputAddress, CensusInputAddress, Unit] = {
@@ -85,6 +87,7 @@ object GeocodeETL {
           y = x.right.getOrElse(ParsedAddress.empty)
         } yield CensusInputAddress(y.parts.addressNumber.toInt, y.parts.streetName, y.parts.zip, y.parts.state, a.point)
       }
+      .withAttributes(supervisionStrategy(decider))
   }
 
   def censusGeocode(implicit ec: ExecutionContext): Flow[CensusInputAddress, CensusGeocodePoint, Unit] = {
@@ -100,6 +103,7 @@ object GeocodeETL {
           distance = Haversine.distance(Point(longitude, latitude), p.point)
         } yield CensusGeocodePoint(PointInputAddress(p.toString, p.point), Point(longitude, latitude), distance)
       }
+      .withAttributes(supervisionStrategy(decider))
   }
 
   def censusPointTractOverlay(implicit ec: ExecutionContext): Flow[CensusGeocodePoint, CensusGeocodeTract, Unit] = {
@@ -112,6 +116,7 @@ object GeocodeETL {
           geoid = y.geoid
         } yield CensusGeocodeTract(c, geoid)
       }
+      .withAttributes(supervisionStrategy(decider))
   }
 
   def toCSV: Flow[TestResult, String, Unit] = {
@@ -178,7 +183,8 @@ object GeocodeETL {
   }
 
   def results: Flow[(PointInputAddressTract, (AddressPointGeocodeTract, CensusGeocodeTract)), TestResult, Unit] = {
-    Flow[(PointInputAddressTract, (AddressPointGeocodeTract, CensusGeocodeTract))].map(a => TestResult(a._1, a._2._1, a._2._2))
+    Flow[(PointInputAddressTract, (AddressPointGeocodeTract, CensusGeocodeTract))]
+      .map(a => TestResult(a._1, a._2._1, a._2._2))
   }
 
 }
