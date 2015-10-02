@@ -27,7 +27,7 @@ object BatchTest {
 
     val r = source
       .via(GeocodeETL.geocodeAddresses)
-      .via(GeocodeETL.results)
+      .via(GeocodeETL.totalResults)
       .via(GeocodeETL.toCSV)
       .map(ByteString(_))
       .runWith(Sink.synchronousFile(new File("test-harness/target/test-harness-results.csv")))

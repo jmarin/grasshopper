@@ -218,8 +218,27 @@ object GeocodeETL {
       .map(a => TestResult(a._1, a._2._1, a._2._2))
   }
 
-  //def censusTest(implicit ec: ExecutionContext): Flow[PointInputAddress, CensusGeocodeTract, Unit] = {
+  def censusGeocodeTest(implicit ec: ExecutionContext): Flow[String, (PointInputAddressTract, CensusGeocodeTract), Unit] = {
+    Flow() { implicit b =>
+      import FlowGraph.Implicits._
 
-  //}
+      val geoJson = b.add(Flow[String])
+      val readJson = b.add(jsonToPointInputAddress)
+      val broadcast = b.add(Broadcast[PointInputAddress](2))
+      val tract = b.add(tractOverlay)
+      val parsedAddress = b.add(addressParse)
+      val census = b.add(censusGeocode)
+      val censusTract = b.add(censusPointTractOverlay)
+      val zip = b.add(Zip[PointInputAddressTract, CensusGeocodeTract])
+
+      geoJson ~> readJson ~> broadcast.in
+      broadcast.out(0) ~> tract ~> zip.in0
+      broadcast.out(1) ~> parsedAddress ~> census ~> censusTract ~> zip.in1
+
+      (geoJson.inlet, zip.out)
+
+    }
+
+  }
 
 }

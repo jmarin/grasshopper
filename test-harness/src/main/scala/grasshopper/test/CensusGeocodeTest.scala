@@ -42,11 +42,10 @@ object CensusGeocodeTest {
   def main(args: Array[String]): Unit = {
     println("Processing Address Points")
 
-    val source = GeocodeETL.addressPointsStream("address", "test")
+    val source = GeocodeETL.addressPointsStream("address", "point")
 
     val r = source
-      .via(GeocodeETL.jsonToPointInputAddress)
-      .via(GeocodeETL.tractOverlay)
+      .via(GeocodeETL.censusGeocodeTest)
       .runWith(Sink.foreach(println))
 
     r.onComplete {
