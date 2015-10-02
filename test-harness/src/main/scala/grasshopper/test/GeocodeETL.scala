@@ -100,6 +100,16 @@ object GeocodeETL {
       .withAttributes(supervisionStrategy(decider))
   }
 
+  def jsonToPointInputAddress: Flow[String, PointInputAddress, Unit] = {
+    Flow[String]
+      .map { s =>
+        val f = s.parseJson.convertTo[Feature]
+        val p = f.geometry.centroid
+        val a = f.get("address").getOrElse("").toString
+        PointInputAddress(a, p)
+      }
+  }
+
   def addressParse(implicit ec: ExecutionContext): Flow[PointInputAddress, CensusInputAddress, Unit] = {
     Flow[PointInputAddress]
       .mapAsync(4) { a =>
@@ -208,19 +218,8 @@ object GeocodeETL {
       .map(a => TestResult(a._1, a._2._1, a._2._2))
   }
 
-  def censusTest(implicit ec: ExecutionContext): Flow[PointInputAddress ,CensusGeocodeTract, Unit] = {
-    val source = addressPointsStream("address", "point")
+  //def censusTest(implicit ec: ExecutionContext): Flow[PointInputAddress, CensusGeocodeTract, Unit] = {
 
-    source.map{ s =>
-      val f = s.toJson.convertTo[Feature]
-      val p = f.geometry.centroid
-      val a = f.get("address").getOrElse("").toString
-      PointInputAddress(a, p)
-    }
-
-
-
-  }
-
+  //}
 
 }
