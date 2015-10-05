@@ -16,6 +16,7 @@ import grasshopper.test.model._
 import feature.Feature
 import spray.json._
 import io.geojson.FeatureJsonProtocol._
+import grasshopper.test.etl._
 
 object CensusGeocodeTest {
 
@@ -42,11 +43,29 @@ object CensusGeocodeTest {
   def main(args: Array[String]): Unit = {
     println("Processing Address Points")
 
-    val source = GeocodeETL.addressPointsStream("address", "point")
+    val source = PointGeocodeETL.addressPointsStream("address", "point")
+
+    //var r = source
+    //.map(ByteString(_))
+    //.runWith(Sink.synchronousFile(new File("test-harness/target/ar-points.geojson")))
+
+    val dir = Paths.get(System.getProperty("user.dir"))
+    val path = dir.resolve("test-harness/target/ar-points.geojson")
 
     val r = source
-      .via(GeocodeETL.censusGeocodeTest)
-      .runWith(Sink.foreach(println))
+      .via(PointGeocodeETL.jsonToPointInputAddress)
+      .via(PointGeocodeETL.tractOverlay)
+      .map(t => t.toCSV)
+      .map(ByteString(_))
+      .runWith(Sink.synchronousFile(new File("test-harness/target/census-results.csv")))
+    //val r = source
+    //.via(GeocodeETL.censusGeocodeTest)
+    //.map { c =>
+    //  CensusGeocodeResult(c._1, c._2).toCSV
+    //}
+    ////.runWith(Sink.foreach(println))
+    //.map(ByteString(_))
+    //.runWith(Sink.synchronousFile(new File("test-harness/target/census-results.csv")))
 
     r.onComplete {
       case _ =>

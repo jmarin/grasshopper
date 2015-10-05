@@ -1,7 +1,8 @@
-package grasshopper.test
+package grasshopper.test.etl
 
 import akka.stream.Supervision
 import akka.stream.scaladsl._
+import akka.stream.OverflowStrategy
 import akka.stream.ActorAttributes.supervisionStrategy
 import Supervision.resumingDecider
 import com.mfglabs.stream.ExecutionContextForBlockingOps
@@ -25,8 +26,9 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import spray.json._
 import io.geojson.FeatureJsonProtocol._
+import grasshopper.test.etl._
 
-object GeocodeETL {
+object CensusGeocodeETL {
 
   val decider: Supervision.Decider = {
     case _: NumberFormatException => Supervision.Resume
@@ -54,7 +56,7 @@ object GeocodeETL {
           geoid = y.geoid
         } yield PointInputAddressTract(i, geoid)
       }
-      .withAttributes(supervisionStrategy(decider))
+      .withAttributes(supervisionStrategy(resumingDecider))
   }
 
   def addressPointsGeocode(implicit ec: ExecutionContext): Flow[PointInputAddress, AddressPointGeocode, Unit] = {
@@ -72,7 +74,7 @@ object GeocodeETL {
           distance = Haversine.distance(Point(longitude, latitude), t.point)
         } yield AddressPointGeocode(t, Point(longitude, latitude), foundAddress, matchAddress, distance)
       }
-      .withAttributes(supervisionStrategy(decider))
+      .withAttributes(supervisionStrategy(resumingDecider))
   }
 
   def addressPointsStream(index: String, indexType: String)(implicit client: Client): Source[String, Unit] = {
@@ -83,7 +85,7 @@ object GeocodeETL {
         index = index,
         `type` = indexType,
         scrollKeepAlive = 1 minutes,
-        scrollSize = 1000
+        scrollSize = 10
       )
   }
 
@@ -97,7 +99,7 @@ object GeocodeETL {
           geoid = y.geoid
         } yield AddressPointGeocodeTract(a, geoid)
       }
-      .withAttributes(supervisionStrategy(decider))
+      .withAttributes(supervisionStrategy(resumingDecider))
   }
 
   def jsonToPointInputAddress: Flow[String, PointInputAddress, Unit] = {
@@ -118,7 +120,7 @@ object GeocodeETL {
           y = x.right.getOrElse(ParsedAddress.empty)
         } yield CensusInputAddress(y.parts.addressNumber.toInt, y.parts.streetName, y.parts.zip, y.parts.state, a.point)
       }
-      .withAttributes(supervisionStrategy(decider))
+      .withAttributes(supervisionStrategy(resumingDecider))
   }
 
   def censusGeocode(implicit ec: ExecutionContext): Flow[CensusInputAddress, CensusGeocodePoint, Unit] = {
@@ -134,7 +136,7 @@ object GeocodeETL {
           distance = Haversine.distance(Point(longitude, latitude), p.point)
         } yield CensusGeocodePoint(PointInputAddress(p.toString, p.point), Point(longitude, latitude), distance)
       }
-      .withAttributes(supervisionStrategy(decider))
+      .withAttributes(supervisionStrategy(resumingDecider))
   }
 
   def censusPointTractOverlay(implicit ec: ExecutionContext): Flow[CensusGeocodePoint, CensusGeocodeTract, Unit] = {
@@ -147,7 +149,7 @@ object GeocodeETL {
           geoid = y.geoid
         } yield CensusGeocodeTract(c, geoid)
       }
-      .withAttributes(supervisionStrategy(decider))
+      .withAttributes(supervisionStrategy(resumingDecider))
   }
 
   def toCSV: Flow[TestResult, String, Unit] = {
@@ -240,5 +242,10 @@ object GeocodeETL {
     }
 
   }
+
+  //def censusTestResults: Flow[(PointInputAddressTract, CensusGeocodeTract), CensusResult, Unit] = {
+  //  Flow[(PointInputAddressTract, CensusGeocodeTract)]
+  //    .map(a => CensusResult(a._1, a._2))
+  //}
 
 }

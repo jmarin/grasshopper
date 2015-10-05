@@ -8,6 +8,7 @@ import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.io.Implicits._
 import scala.collection.JavaConverters._
 import akka.util.ByteString
+import grasshopper.test.etl._
 
 object BatchTest {
 
@@ -16,7 +17,7 @@ object BatchTest {
   implicit val ec = system.dispatcher
 
   val dir = Paths.get(System.getProperty("user.dir"))
-  val path = dir.resolve("test-harness/src/main/resources/addresses.csv")
+  val path = dir.resolve("test-harness/src/main/resources/ar-points.geojson")
 
   def main(args: Array[String]): Unit = {
 
@@ -26,9 +27,9 @@ object BatchTest {
     val source = Source(() => it.asScala)
 
     val r = source
-      .via(GeocodeETL.geocodeAddresses)
-      .via(GeocodeETL.totalResults)
-      .via(GeocodeETL.toCSV)
+      .via(CensusGeocodeETL.geocodeAddresses)
+      .via(CensusGeocodeETL.totalResults)
+      .via(CensusGeocodeETL.toCSV)
       .map(ByteString(_))
       .runWith(Sink.synchronousFile(new File("test-harness/target/test-harness-results.csv")))
 
