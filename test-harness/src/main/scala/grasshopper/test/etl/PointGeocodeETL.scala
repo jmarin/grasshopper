@@ -15,7 +15,7 @@ import grasshopper.client.census.CensusClient
 import grasshopper.client.census.model.{ CensusResult }
 import grasshopper.client.parser.AddressParserClient
 import grasshopper.client.parser.model.ParsedAddress
-import grasshopper.test.model._
+import grasshopper.test.model.GeocodeModel._
 import grasshopper.test.util.Haversine
 import org.elasticsearch.client.Client
 import org.elasticsearch.index.query.QueryBuilders
@@ -42,7 +42,7 @@ object PointGeocodeETL {
 
   def tractOverlay(implicit ec: ExecutionContext): Flow[PointInputAddress, PointInputAddressTract, Unit] = {
     Flow[PointInputAddress]
-      .mapAsync(4) { i =>
+      .mapAsyncUnordered(4) { i =>
         val p = i.point
         for {
           x <- HMDAGeoClient.findTractByPoint(p) if x.isRight
@@ -55,7 +55,7 @@ object PointGeocodeETL {
 
   def addressPointsGeocode(implicit ec: ExecutionContext): Flow[PointInputAddress, AddressPointGeocode, Unit] = {
     Flow[PointInputAddress]
-      .mapAsync(4) { t =>
+      .mapAsyncUnordered(4) { t =>
         val a = t.inputAddress
         for {
           x <- AddressPointsClient.geocode(a) if x.isRight
@@ -85,7 +85,7 @@ object PointGeocodeETL {
 
   def addressPointTractOverlay(implicit ec: ExecutionContext): Flow[AddressPointGeocode, AddressPointGeocodeTract, Unit] = {
     Flow[AddressPointGeocode]
-      .mapAsync(4) { a =>
+      .mapAsyncUnordered(4) { a =>
         val p = a.point
         for {
           x <- HMDAGeoClient.findTractByPoint(p) if x.isRight

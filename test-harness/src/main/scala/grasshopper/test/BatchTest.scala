@@ -1,14 +1,12 @@
 package grasshopper.test
 
 import java.nio.file.{ Files, Paths }
-import java.io.File
+
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.io.Implicits._
+import akka.stream.scaladsl.Source
+
 import scala.collection.JavaConverters._
-import akka.util.ByteString
-import grasshopper.test.etl._
 
 object BatchTest {
 
@@ -26,19 +24,19 @@ object BatchTest {
     val it = Files.lines(path).iterator()
     val source = Source(() => it.asScala)
 
-    val r = source
-      .via(CensusGeocodeETL.geocodeAddresses)
-      .via(CensusGeocodeETL.totalResults)
-      .via(CensusGeocodeETL.toCSV)
-      .map(ByteString(_))
-      .runWith(Sink.synchronousFile(new File("test-harness/target/test-harness-results.csv")))
-
-    r.onComplete {
-      case _ =>
-        println("DONE!")
-        system.shutdown()
-        Runtime.getRuntime.exit(0)
-    }
+    //    val r = source
+    //      .via(CensusGeocodeETL.geocodeAddresses)
+    //      .via(CensusGeocodeETL.totalResults)
+    //      .via(CensusGeocodeETL.toCSV)
+    //      .map(ByteString(_))
+    //      .runWith(Sink.synchronousFile(new File("test-harness/target/test-harness-results.csv")))
+    //
+    //    r.onComplete {
+    //      case _ =>
+    //        println("DONE!")
+    //        system.shutdown()
+    //        Runtime.getRuntime.exit(0)
+    //    }
 
     sys.addShutdownHook(system.shutdown())
   }

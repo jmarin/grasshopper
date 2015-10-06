@@ -1,14 +1,18 @@
 package grasshopper.test
 
+import java.io.File
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
+import akka.stream.io.Implicits._
+import akka.util.ByteString
 import com.typesafe.config.ConfigFactory
-import grasshopper.test.etl._
+import grasshopper.test.etl.{ CensusGeocodeETL, PointGeocodeETL }
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.settings.ImmutableSettings
 import org.elasticsearch.common.transport.InetSocketTransportAddress
 
-object CensusGeocodeTest {
+object TractOverlay {
 
   implicit val system = ActorSystem("grasshopper-test-harness-census")
   implicit val mat = ActorMaterializer()(system)
@@ -34,38 +38,24 @@ object CensusGeocodeTest {
     println("Processing Address Points")
 
     val source = PointGeocodeETL.addressPointsStream("arkansas", "point")
-    //var r = source
-    //.map(ByteString(_))
-    //.runWith(Sink.synchronousFile(new File("test-harness/target/ar-points.geojson")))
 
-    //    val dir = Paths.get(System.getProperty("user.dir"))
-    //    val path = dir.resolve("test-harness/target/ar-points.geojson")
+    var i = 0
 
-    //    val r = source
-    //      .via(PointGeocodeETL.jsonToPointInputAddress)
-    //      .via(PointGeocodeETL.tractOverlay)
-    //      .map(t => t.toCSV)
-    //      .map(ByteString(_))
-    //      .runWith(Sink.synchronousFile(new File("test-harness/target/census-results.csv")))
-    //    val r = source
-    //      .via(CensusGeocodeETL.censusGeocodeTest)
-    //      .map { c =>
-    //        CensusGeocodeResult(c._1, c._2).toCSV
-    //      }
-    //      //.runWith(Sink.foreach(println))
-    //      .map(ByteString(_))
-    //      .runWith(Sink.synchronousFile(new File("test-harness/target/arkansas-results.csv")))
-    //
-    //    r.onComplete {
-    //      case _ =>
-    //        println("DONE!")
-    //        client.close()
-    //        system.shutdown()
-    //        Runtime.getRuntime.exit(0)
-    //    }
-
-    sys.addShutdownHook(system.shutdown())
-
+    source
+      .via(PointGeocodeETL.jsonToPointInputAddress)
+      .via(PointGeocodeETL.tractOverlay)
+      .via(CensusGeocodeETL.tractParse)
+      .via(CensusGeocodeETL.geocodePoint)
+      .via(CensusGeocodeETL.censusPointTractOverlay)
+      .map(c => c.toCSV)
+      //.runWith(Sink.foreach(println))
+      .map(ByteString(_))
+      .runWith(Sink.synchronousFile(new File("test-harness/target/arkansas-results.csv")))
+      .onComplete {
+        case _ =>
+          println("DONE!")
+          client.close()
+          system.shutdown()
+      }
   }
-
 }
