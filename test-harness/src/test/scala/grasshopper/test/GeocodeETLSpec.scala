@@ -3,7 +3,7 @@ package grasshopper.test
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
-import org.scalatest.{FlatSpec, MustMatchers}
+import org.scalatest.{ FlatSpec, MustMatchers }
 
 class GeocodeETLSpec extends FlatSpec with MustMatchers {
   implicit val system = ActorSystem("sys")

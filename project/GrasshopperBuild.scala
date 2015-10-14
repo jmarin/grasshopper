@@ -54,7 +54,7 @@ object GrasshopperBuild extends Build {
     
   lazy val grasshopper = (project in file("."))
     .settings(buildSettings: _*)
-    .aggregate(geocoder, addresspoints, census, client)
+    .aggregate(geocoder, addresspoints, census, client, test_harness)
 
 
   lazy val elasticsearch = (project in file("elasticsearch"))
@@ -152,6 +152,12 @@ object GrasshopperBuild extends Build {
     .settings(
       Seq(
         assemblyJarName in assembly := {s"grasshopper-${name.value}.jar"},
+        assemblyMergeStrategy in assembly := {
+          case "application.conf" => MergeStrategy.concat
+          case x =>
+            val oldStrategy = (assemblyMergeStrategy in assembly).value
+            oldStrategy(x)
+        },
         libraryDependencies ++= akkaHttpDeps ++ scaleDeps ++ mfgLabs,
         resolvers ++= repos
       )
