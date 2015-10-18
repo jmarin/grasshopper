@@ -1,4 +1,4 @@
-package grasshopper.census.api
+package grasshopper.census.http
 
 import java.net.InetAddress
 import java.time.Instant

@@ -9,7 +9,7 @@ import grasshopper.metrics.JvmMetrics
 import org.elasticsearch.common.settings.ImmutableSettings
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.transport.InetSocketTransportAddress
-import grasshopper.census.api.Service
+import grasshopper.census.http.Service
 
 import scala.util.Properties
 

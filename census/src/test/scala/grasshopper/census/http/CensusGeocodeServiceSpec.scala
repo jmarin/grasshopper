@@ -1,4 +1,4 @@
-package grasshopper.census.api
+package grasshopper.census.http
 
 import java.time.{ Duration, Instant }
 
