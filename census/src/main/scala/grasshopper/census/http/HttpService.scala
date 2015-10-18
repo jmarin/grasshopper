@@ -25,7 +25,7 @@ import spray.json._
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.{ Failure, Success, Try }
 
-trait Service extends CensusJsonProtocol with CensusGeocode {
+trait HttpService extends CensusJsonProtocol with CensusGeocode {
   implicit val system: ActorSystem
 
   implicit def executor: ExecutionContextExecutor
