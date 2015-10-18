@@ -37,7 +37,7 @@ trait HttpService extends CensusJsonProtocol with CensusGeocode {
 
   val logger: LoggingAdapter
 
-  override lazy val log = Logger(LoggerFactory.getLogger("grasshopper-census"))
+  override lazy val log = Logger(LoggerFactory.getLogger("grasshopper-census-http"))
 
   val routes = {
     pathSingleSlash {
