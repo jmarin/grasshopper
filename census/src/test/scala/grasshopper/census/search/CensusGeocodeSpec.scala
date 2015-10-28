@@ -33,6 +33,7 @@ class CensusGeocodeSpec extends FlatSpec with MustMatchers with BeforeAndAfterAl
       "3146",
       "M St NW",
       "20007",
+      "",
       "DC"
     )
 
@@ -46,6 +47,7 @@ class CensusGeocodeSpec extends FlatSpec with MustMatchers with BeforeAndAfterAl
       "3146",
       "M St NW",
       "20007",
+      "",
       "DC"
     )
 
@@ -95,6 +97,7 @@ class CensusGeocodeSpec extends FlatSpec with MustMatchers with BeforeAndAfterAl
       "G41",
       "Motel Rd",
       "80915",
+      "",
       "CO"
     )
 
@@ -102,6 +105,7 @@ class CensusGeocodeSpec extends FlatSpec with MustMatchers with BeforeAndAfterAl
       "125-2",
       "S Reynolds St",
       "22304",
+      "",
       "VA"
     )
 

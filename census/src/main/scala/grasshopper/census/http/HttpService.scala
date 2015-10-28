@@ -62,7 +62,7 @@ trait HttpService extends CensusJsonProtocol with CensusGeocode {
               'zipCode.as[String] ? "",
               'state.as[String] ? ""
             ) { (number, streetName, zipCode, state) =>
-                val addressInput = ParsedInputAddress(number, streetName, zipCode, state)
+                val addressInput = ParsedInputAddress(number, streetName, zipCode, "", state)
                 encodeResponseWith(NoCoding, Gzip, Deflate) {
                   geocodeLines(addressInput, 1)
                 }

@@ -16,7 +16,7 @@ import scala.util.Try
 
 trait Geocode {
 
-  lazy val log = Logger(LoggerFactory.getLogger("grasshopper-grasshopper.addresspoints"))
+  lazy val log = Logger(LoggerFactory.getLogger("grasshopper-addresspoints"))
 
   def geocode(client: Client, index: String, indexType: String, address: String, count: Int): Try[Array[Feature]] = {
     val addr = URLDecoder.decode(address, "UTF-8")
@@ -29,14 +29,12 @@ trait Geocode {
         .map { s =>
           log.debug(s)
           s.parseJson.convertTo[Feature]
-        }.map { f =>
-          f.addOrUpdate("match", SearchUtils.percentMatch(addr, f.get("address").getOrElse("").toString))
         }
     }
   }
 
   private def searchAddress(client: Client, index: String, indexType: String, address: String): Array[SearchHit] = {
-    val qb = QueryBuilders.matchQuery("address", address)
+    val qb = QueryBuilders.matchPhraseQuery("address", address)
     val response = client.prepareSearch(index)
       .setTypes(indexType)
       .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
