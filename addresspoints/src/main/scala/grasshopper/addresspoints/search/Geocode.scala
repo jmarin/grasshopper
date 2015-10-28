@@ -2,6 +2,9 @@ package grasshopper.addresspoints.search
 
 import java.net.URLDecoder
 
+import akka.stream.scaladsl.Source
+import com.mfglabs.stream.ExecutionContextForBlockingOps
+import com.mfglabs.stream.extensions.elasticsearch.EsStream
 import com.typesafe.scalalogging.Logger
 import feature._
 import io.geojson.FeatureJsonProtocol._
@@ -11,7 +14,8 @@ import org.elasticsearch.index.query.QueryBuilders
 import org.elasticsearch.search.SearchHit
 import org.slf4j.LoggerFactory
 import spray.json._
-
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 trait Geocode {
@@ -35,6 +39,15 @@ trait Geocode {
     }
   }
 
+  def fgeocode(index: String, indexType: String, address: String, count: Int)(implicit client: Client): Source[Feature, Unit] = {
+    fSearchAddress(index, indexType, address)
+      .take(count)
+      .map { s =>
+        log.info(s)
+        s.parseJson.convertTo[Feature]
+      }
+  }
+
   private def searchAddress(client: Client, index: String, indexType: String, address: String): Array[SearchHit] = {
     val qb = QueryBuilders.matchQuery("address", address)
     val response = client.prepareSearch(index)
@@ -45,5 +58,18 @@ trait Geocode {
       .actionGet
 
     response.getHits().getHits
+  }
+
+  private def fSearchAddress(index: String, indexType: String, address: String)(implicit client: Client): Source[String, Unit] = {
+    implicit val ec = ExecutionContextForBlockingOps(ExecutionContext.Implicits.global)
+    EsStream
+      .queryAsStream(
+        //QueryBuilders.matchQuery("address", address),
+        QueryBuilders.matchAllQuery(),
+        index = index,
+        `type` = indexType,
+        scrollKeepAlive = 1.minutes,
+        scrollSize = 10
+      )
   }
 }

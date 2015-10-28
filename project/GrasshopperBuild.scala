@@ -39,7 +39,7 @@ object GrasshopperBuild extends Build {
 
   val akkaHttpDeps = akkaDeps ++ jsonDeps ++ Seq(akkaHttp, akkaHttpCore, akkaHttpTestkit)
 
-  val esDeps = commonDeps ++ Seq(es, scaleGeoJson)
+  val esDeps = commonDeps ++ Seq(es, scaleGeoJson, mfglabs)
 
   val scaleDeps = Seq(scaleGeoJson)
 
