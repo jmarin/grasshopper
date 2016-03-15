@@ -42,7 +42,7 @@ trait WebsocketService extends GrasshopperJsonProtocol {
 
   val wsRoutes =
     path("metrics-ws") {
-      handleWebsocketMessages(geocodeStats)
+      handleWebSocketMessages(geocodeStats)
     }
 
   object WSActor {

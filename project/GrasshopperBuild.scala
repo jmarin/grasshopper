@@ -86,7 +86,7 @@ object GrasshopperBuild extends Build {
           assemblyJarName in assembly := {s"grasshopper-${name.value}.jar"},
           libraryDependencies ++= akkaHttpDeps ++ scaleDeps ++ asyncDeps
         )
-    ).dependsOn(model)
+    ).dependsOn(model, mesosDnsClient)
 
   lazy val geocoder = (project in file("geocoder"))
     .configs( IntegrationTest )
@@ -129,6 +129,8 @@ object GrasshopperBuild extends Build {
 
   // NOTE: Use this method when referencing a locally modified version of hmda-geo 
   //lazy val hmdaGeo = ProjectRef(file("../hmda-geo"), "client")
+
+  lazy val mesosDnsClient = ProjectRef(uri("git://github.com/jmarin/mesos-dns-client.git"), "mesosDnsClient")
 
   lazy val test_harness = (project in file("test-harness"))
     .configs(IntegrationTest)
